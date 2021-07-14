@@ -19,11 +19,44 @@ import UIKit
     }
     
     //MARK: - private properties
-    private let textView = UITextView()
+    private let textView = ReadMoreTextView()
     private var detectionAreaButtons = [DetectionAreaButton]()
     
     //MARK: - public properties
+    
+    /**The attributed text to trim the original text. Setting this property resets `readMoreText`.*/
+    public var attributedReadMoreText: NSAttributedString? {
+        didSet {
+            textView.attributedReadMoreText = attributedReadMoreText
+            setNeedsLayout()
+        }
+    }
+
+    public var attributedReadLessText: NSAttributedString? {
+        didSet {
+            textView.attributedReadLessText = attributedReadLessText
+            setNeedsLayout()
+        }
+    }
+
+    public var maximumNumberOfLines: Int = 0 {
+        didSet {
+            textView.maximumNumberOfLines = maximumNumberOfLines
+            setNeedsLayout()
+        }
+    }
+    
     open var onClick: ((AttributedLabel, Detection)->Void)?
+    open var onClickOnReadMore: (() -> Void)? {
+        didSet {
+            textView.onClickOnReadMore = onClickOnReadMore
+        }
+    }
+    open var onClickOnReadLess: (() -> Void)? {
+        didSet {
+            textView.onClickOnReadLess = onClickOnReadLess
+        }
+    }
 
     open func rects(for detection: Detection) -> [CGRect] {
         var result = [CGRect]()
@@ -61,6 +94,7 @@ import UIKit
     open var attributedText: AttributedText? {
         set {
             state = State(attributedText: newValue, isEnabled: state.isEnabled, detection: nil)
+            textView.layoutSubviews()
             setNeedsLayout()
         }
         get {
@@ -152,7 +186,9 @@ import UIKit
         textView.backgroundColor = nil
         
         textView.translatesAutoresizingMaskIntoConstraints = false
-        
+
+        textView.shouldTrim = true
+
         textView.topAnchor.constraint(equalTo: topAnchor).isActive = true
         textView.bottomAnchor.constraint(equalTo: bottomAnchor).isActive = true
         textView.leftAnchor.constraint(equalTo: leftAnchor).isActive = true
@@ -180,6 +216,8 @@ import UIKit
                 })
             }
         }
+        
+        textView.layoutSubviews()
     }
     
     open override func sizeThatFits(_ size: CGSize) -> CGSize {
@@ -242,7 +280,11 @@ import UIKit
     }
     
     @objc private func handleDetectionAreaButtonClick(_ sender: DetectionAreaButton) {
+        guard !textView.touchHandler(sender.center) else {
+            return
+        }
         onClick?(self, sender.detection)
+        textView.layoutSubviews()
     }
     
     //MARK: - state
@@ -321,6 +363,7 @@ import UIKit
         } else {
             textView.attributedText = nil
         }
+        textView.layoutSubviews()
     }
 }
 
